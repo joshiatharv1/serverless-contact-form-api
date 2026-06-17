@@ -1,0 +1,34 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main  # Only triggers on pushes to main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out your code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Set up Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Deploy using Serverless Framework
+      # AWS credentials come from GitHub Secrets — never hardcode these
+      - name: Deploy to AWS
+        run: npx serverless deploy --stage prod
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

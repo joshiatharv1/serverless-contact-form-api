@@ -1,0 +1,85 @@
+service: serverless-contact-form-api
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  environment:
+    DYNAMODB_TABLE: ${self:service}-submissions-${self:provider.stage}
+    S3_BUCKET: ${self:service}-uploads-${self:provider.stage}
+  iam:
+    role:
+      statements:
+        # Allow Lambda to read/write DynamoDB
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:Scan
+            - dynamodb:DeleteItem
+          Resource:
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}
+        # Allow Lambda to read/write S3
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:GetObject
+            - s3:DeleteObject
+          Resource:
+            - arn:aws:s3:::${self:provider.environment.S3_BUCKET}/*
+
+functions:
+  # POST /submit — saves form data + generates S3 upload URL
+  submitForm:
+    handler: src/submitForm.handler
+    events:
+      - http:
+          path: /submit
+          method: post
+          cors: true
+
+  # GET /submissions — returns all form submissions
+  getSubmissions:
+    handler: src/getSubmissions.handler
+    events:
+      - http:
+          path: /submissions
+          method: get
+          cors: true
+
+  # DELETE /submissions/{id} — deletes a specific submission
+  deleteSubmission:
+    handler: src/deleteSubmission.handler
+    events:
+      - http:
+          path: /submissions/{id}
+          method: delete
+          cors: true
+
+resources:
+  Resources:
+    # DynamoDB Table
+    SubmissionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        BillingMode: PAY_PER_REQUEST   # No provisioned capacity = cheaper
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+    # S3 Bucket for file uploads
+    UploadsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.S3_BUCKET}
+        ForceDeleteOnRemove: true
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders: ["*"]
+              AllowedMethods: [GET, PUT, POST]
+              AllowedOrigins: ["*"]
