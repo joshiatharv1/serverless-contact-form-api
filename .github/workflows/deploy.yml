@@ -27,8 +27,11 @@ jobs:
 
       # 4. Deploy using Serverless Framework
       # AWS credentials come from GitHub Secrets — never hardcode these
+      - name: Install Serverless Framework v3
+        run: npm install -g serverless@3
+
       - name: Deploy to AWS
-        run: npx serverless deploy --stage prod
+        run: serverless deploy --stage prod
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
